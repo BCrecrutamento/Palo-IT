@@ -87,7 +87,7 @@ function renderBoard(){var b=$("board");b.textContent="";
    card.appendChild(avatar(c));var t=el("div");t.appendChild(el("b","",c.nome||"Sem nome"));
    t.appendChild(el("small","",[c.cidade,c.pretensao].filter(Boolean).join(" · ")));
    var lv=LV.filter(function(l){return l[0]===c.ingles})[0];if(lv)t.appendChild(el("span","tag","Inglês: "+(lv[0]==="outro"?(c.outroIdioma||"outro"):lv[1])));
-   var nx=nextMeet(c);if(nx)var sm=el("small","",fmtD(nx.data)+" "+(nx.hora||""));sm.prepend(ic("cal"));t.appendChild(sm);
+   var nx=nextMeet(c);if(nx){var sm=el("small","",fmtD(nx.data)+" "+(nx.hora||""));sm.prepend(ic("cal"));t.appendChild(sm)};
    card.appendChild(t);card.onclick=function(){openC(id)};col.appendChild(card)});
   b.appendChild(col)})}
 function fmtD(d){var p=(d||"").split("-");return p.length===3?p[2]+"/"+p[1]:d}

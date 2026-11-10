@@ -46,7 +46,7 @@ input,textarea,select{width:100%;border:1px solid var(--bd);background:var(--bg)
 textarea{min-height:90px;resize:vertical}
 .seg{display:flex;gap:6px;flex-wrap:wrap}.seg .btn{padding:5px 10px}
 .lk a{color:var(--ac);margin-right:14px;text-decoration:none;display:inline-flex;align-items:center}
-.mr{display:grid;grid-template-columns:120px 150px 110px;gap:8px;align-items:center;margin-bottom:8px}.mr label.ck{display:flex;align-items:center;gap:8px;margin:0;color:var(--tx);font-size:13px;font-weight:500}.mr input[type=checkbox]{width:18px;height:18px;accent-color:var(--ac);padding:0}.sub{font-size:11px;color:var(--mu);margin:-6px 4px 10px}.chips{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}.chip{font-size:10.5px;border:1px solid var(--bd);border-radius:99px;padding:0 7px;color:var(--mu)}.chip.ok{background:var(--ac);border-color:var(--ac);color:var(--acx)}.cvr{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.cvr a{color:var(--ac)}
+.mr{display:grid;grid-template-columns:120px 150px 110px;gap:8px;align-items:center;margin-bottom:8px}.mr label.ck{display:flex;align-items:center;gap:8px;margin:0;color:var(--tx);font-size:13px;font-weight:500}.mr input[type=checkbox]{width:18px;height:18px;accent-color:var(--ac);padding:0}.sub{font-size:11px;color:var(--mu);margin:-6px 4px 10px}.srch{padding:12px 20px 0;display:flex;gap:12px;align-items:center;flex-wrap:wrap}.srch input{max-width:440px}#qn{font-size:12px;color:var(--mu)}.chips{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}.chip{font-size:10.5px;border:1px solid var(--bd);border-radius:99px;padding:0 7px;color:var(--mu)}.chip.ok{background:var(--ac);border-color:var(--ac);color:var(--acx)}.cvr{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.cvr a{color:var(--ac)}
 .ft{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--bd);justify-content:space-between}
 #st{font-size:12px;color:var(--mu)}
 @media(max-width:600px){.bd{grid-template-columns:1fr}.mr{grid-template-columns:1fr 1fr}}
@@ -55,6 +55,7 @@ textarea{min-height:90px;resize:vertical}
 
 <button class="btn" id="rs" hidden="">Descartar edições</button><button class="btn" id="dl" hidden="">Baixar index.html</button><button class="btn p" id="add" hidden="">+ Candidato</button></header>
 <div class="ban" id="ban">Candidatos selecionados<small>Arraste os cards entre as etapas e clique para ver e editar o perfil completo.</small></div>
+<div class="srch"><input id="q" type="search" placeholder="Buscar por nome, cidade, e-mail, parecer, data…" autocomplete="off"><span id="qn"></span></div>
 <div class="board" id="board"></div>
 
 <dialog id="dlg"><input type="file" id="fi" accept="image/*" hidden=""><input type="file" id="fp" accept="application/pdf,.pdf" hidden=""><div class="dh2"><div class="av" id="dav"></div><div style="flex:1"><input id="f_nome" placeholder="Nome do candidato" style="font-size:17px;font-weight:600"><div class="lk" id="links" style="margin-top:6px"></div></div></div>
@@ -78,7 +79,7 @@ function avatar(c){var a=el("div","av");if(safe(c.foto)){var i=document.createEl
 function persist(){try{localStorage.setItem("bc_cands",JSON.stringify({v:VER,d:cands}))}catch(e){alert("O armazenamento do navegador está cheio (PDFs grandes). Clique em Baixar index.html agora para não perder as alterações.")}}
 function save(id,d){cands[id]=d;persist();return Promise.resolve()}
 function renderBoard(){var b=$("board");b.textContent="";
- STAGES.forEach(function(s){var col=el("div","col"),list=Object.keys(cands).filter(function(k){return cands[k].stage===s}).sort(cmp);
+ STAGES.forEach(function(s){var col=el("div","col"),list=Object.keys(cands).filter(function(k){return cands[k].stage===s&&match(cands[k])}).sort(cmp);
   var h=el("h2");h.appendChild(el("span","",s));h.appendChild(el("span","",String(list.length)));col.appendChild(h);if(SUB[s])col.appendChild(el("div","sub",SUB[s]));
   col.ondragover=function(e){e.preventDefault();col.classList.add("over")};col.ondragleave=function(){col.classList.remove("over")};
   col.ondrop=function(e){e.preventDefault();col.classList.remove("over");var id=e.dataTransfer.getData("text/plain");if(cands[id]&&cands[id].stage!==s){cands[id].stage=s;renderAll();save(id,cands[id])}};
@@ -90,7 +91,10 @@ function renderBoard(){var b=$("board");b.textContent="";
    var cw=el("div","chips");PERS.forEach(function(p){var m=getM(c,p),ok=m&&m.feito,s=el("span","chip"+(ok?" ok":""),(ok?"✓ ":"")+p);if(m&&m.data)s.title=fmtD(m.data)+" "+(m.hora||"");cw.appendChild(s)});t.appendChild(cw);var nx=pend(c);if(nx){var sm=el("small","",nx.com+" · "+fmtD(nx.data)+" "+(nx.hora||""));sm.prepend(ic("cal"));t.appendChild(sm)};
    card.appendChild(t);card.onclick=function(){openC(id)};col.appendChild(card)});
   b.appendChild(col)})}
-var SUB={};
+var SUB={},Q=[];
+function norm(s){return String(s==null?"":s).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase()}
+function hay(c){var lv={basico:"basico",intermediario:"intermediario",avancado:"avancado",fluencia:"fluencia"};var t=[c.nome,c.stage,c.cidade,c.pretensao,c.linkedin,c.github,c.telefone,c.email,c.ingles,lv[c.ingles],c.outroIdioma,c.parecerTecnico,c.parecerBruna,c.parecerCTO,c.cv&&c.cv.nome];(c.reunioes||[]).forEach(function(m){t.push(m.com,m.tipo,fmtD(m.data),m.hora,m.feito?"realizada":"pendente")});return norm(t.join(" \n "))}
+function match(c){if(!Q.length)return true;var s=hay(c);return Q.every(function(w){return s.indexOf(w)>=0})}
 var PERS=["Bruna","Marcos","CTO"];
 function fmtD(d){var p=(d||"").split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:(d||"")}
 function brToIso(s){var m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec((s||"").trim());if(!m)return null;var d=+m[1],mo=+m[2],y=+m[3],dt=new Date(y,mo-1,d);if(dt.getFullYear()!==y||dt.getMonth()!==mo-1||dt.getDate()!==d)return null;return m[3]+"-"+m[2]+"-"+m[1]}
@@ -103,7 +107,7 @@ function drawCv(){var r=$("cvr");r.textContent="";var c=stateV.cv;if(c){var a=el
  if(canWrite){var b1=el("button","btn",c?"Trocar PDF":"Anexar PDF");b1.type="button";b1.onclick=function(){$("fp").click()};r.appendChild(b1);if(c){var b2=el("button","btn","Remover");b2.type="button";b2.onclick=function(){stateV.cv=null;drawCv()};r.appendChild(b2)}}else if(!c)r.textContent="—"}
 function allMeets(){var r=[];Object.keys(cands).forEach(function(id){(cands[id].reunioes||[]).forEach(function(m){if(m.data)r.push({id:id,c:cands[id],m:m})})});return r}
 function nextMeet(c){var t=new Date().toISOString().slice(0,10);return (c.reunioes||[]).filter(function(m){return m.data>=t}).sort(function(a,b){return (a.data+a.hora)<(b.data+b.hora)?-1:1})[0]}
-function renderAll(){renderBoard()}
+function renderAll(){renderBoard();var n=Object.keys(cands).length,m=Object.keys(cands).filter(function(k){return match(cands[k])}).length;$("qn").textContent=Q.length?(m+" de "+n+" candidatos"):(n+" candidatos")}
 function openC(id){cur=id;var c=cands[id]||(cands[id]={nome:"",stage:STAGES[0],reunioes:[]});stateV={foto:c.foto||"",ing:c.ingles||"",cv:(c.cv&&c.cv.dados)?c.cv:null,meets:mk(c),other:(c.reunioes||[]).filter(function(m){return PERS.indexOf(m.com)<0})};
  $("f_nome").value=c.nome||"";$("f_nome").disabled=!canWrite;setAv();
  var L=$("links");L.textContent="";[["linkedin","LinkedIn"],["cv","CV"],["github","GitHub"]].forEach(function(k){if(safe(c[k[0]])){var a=el("a");a.appendChild(ic(k[0]));a.appendChild(document.createTextNode(k[1]));a.href=c[k[0]];a.target="_blank";a.rel="noopener noreferrer";L.appendChild(a)}});
@@ -114,7 +118,7 @@ function openC(id){cur=id;var c=cands[id]||(cands[id]={nome:"",stage:STAGES[0],r
  var cb0=el("div");cb0.appendChild(lab("CV (PDF)","cv"));var cr0=el("div","cvr");cr0.id="cvr";cb0.appendChild(cr0);b.appendChild(cb0);drawCv();
  var e=el("div","f");e.appendChild(lab("Inglês","ingles"));var sg=el("div","seg");sg.id="seg";LV.forEach(function(l){var bt=el("button","btn"+(stateV.ing===l[0]?" on":""),l[1]);bt.type="button";bt.onclick=function(){if(!canWrite)return;stateV.ing=stateV.ing===l[0]?"":l[0];[].forEach.call(sg.children,function(x,ix){x.classList.toggle("on",LV[ix][0]===stateV.ing)});oi.style.display=(stateV.ing==="outro"||oi.value)?"":"none"};sg.appendChild(bt)});e.appendChild(sg);
  var oi=document.createElement("input");oi.id="f_outro";oi.placeholder="Outro idioma / nível (ex.: Espanhol – básico)";oi.value=c.outroIdioma||"";oi.style.cssText="margin-top:8px;display:"+(stateV.ing==="outro"||oi.value?"":"none");e.appendChild(oi);b.appendChild(e);
- [["parecerBruna","Parecer Bruna"],["parecerTecnico","Parecer técnico"]].forEach(function(f){var w=el("div","f");w.appendChild(lab(f[1],f[0]==="parecerBruna"?"parecer":"codigo"));var t=document.createElement("textarea");t.id="f_"+f[0];t.value=c[f[0]]||"";w.appendChild(t);b.appendChild(w)});
+ [["parecerTecnico","Resumo das qualificações"],["parecerBruna","Parecer Bruna"],["parecerCTO","Parecer técnico Palo"]].forEach(function(f){var w=el("div","f");w.appendChild(lab(f[1],f[0]==="parecerBruna"?"parecer":f[0]==="parecerCTO"?"codigo":"etapa"));var t=document.createElement("textarea");t.id="f_"+f[0];t.value=c[f[0]]||"";w.appendChild(t);b.appendChild(w)});
  var mw=el("div","f");mw.appendChild(lab("Entrevistas (marque quando realizada)","cal"));var ml=el("div");ml.id="ml2";mw.appendChild(ml);b.appendChild(mw);drawM();
  [].forEach.call(document.querySelectorAll("#dlg input,#dlg textarea,#dlg select"),function(x){x.disabled=!canWrite});
  $("sv").style.display=$("del").style.display=canWrite?"":"none";$("dlg").showModal()}
@@ -126,12 +130,13 @@ function drawM(){var ml=$("ml2");ml.textContent="";PERS.forEach(function(p){var 
  r.appendChild(d);r.appendChild(t);ml.appendChild(r)})}
 function val(i){return $("f_"+i).value.trim()}
 $("sv").onclick=function(){var rs=[];for(var q=0;q<PERS.length;q++){var p=PERS[q],m=stateV.meets[p];if(m.br!==undefined){if(m.br===""){m.data=""}else{var iso=brToIso(m.br);if(!iso){alert("Data inválida em "+p+". Use dd/mm/aaaa.");return}m.data=iso}}if(m.hora&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(m.hora)){alert("Hora inválida em "+p+". Use hh:mm (24h).");return}if(m.data||m.feito)rs.push({com:p,tipo:"Entrevista "+p,data:m.data||"",hora:m.hora||"",feito:!!m.feito})}
- var c=cands[cur]||{};c.nome=val("nome");c.stage=val("stage");FIELDS.forEach(function(f){c[f[0]]=val(f[0])});c.foto=stateV.foto;c.ingles=stateV.ing;c.outroIdioma=val("outro");c.parecerBruna=$("f_parecerBruna").value;c.parecerTecnico=$("f_parecerTecnico").value;c.reunioes=rs.concat(stateV.other);c.cv=stateV.cv;
+ var c=cands[cur]||{};c.nome=val("nome");c.stage=val("stage");FIELDS.forEach(function(f){c[f[0]]=val(f[0])});c.foto=stateV.foto;c.ingles=stateV.ing;c.outroIdioma=val("outro");c.parecerBruna=$("f_parecerBruna").value;c.parecerTecnico=$("f_parecerTecnico").value;c.parecerCTO=$("f_parecerCTO").value;c.reunioes=rs.concat(stateV.other);c.cv=stateV.cv;
  cands[cur]=c;save(cur,c);$("dlg").close();renderAll()};
 $("cls").onclick=function(){$("dlg").close();if(cands[cur]&&!cands[cur].nome&&!cands[cur].stage_saved&&!canWrite)delete cands[cur];renderAll()};
 $("del").onclick=function(){if(confirm("Excluir este candidato?")){var id=cur;delete cands[id];persist();$("dlg").close();renderAll()}};
 $("fi").onchange=function(){var f=this.files[0];this.value="";if(!f)return;var im=new Image(),u=URL.createObjectURL(f);im.onload=function(){var s=Math.min(im.width,im.height),cv=document.createElement("canvas");cv.width=cv.height=200;cv.getContext("2d").drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,200,200);stateV.foto=cv.toDataURL("image/jpeg",0.85);URL.revokeObjectURL(u);setAv()};im.onerror=function(){alert("Não foi possível ler essa imagem.")};im.src=u};
 $("fp").onchange=function(){var f=this.files[0];this.value="";if(!f)return;if(!/\.pdf$/i.test(f.name)&&f.type!=="application/pdf"){alert("Envie um arquivo PDF.");return}if(f.size>3*1024*1024){alert("PDF muito grande (máx. 3 MB). Comprima o arquivo e tente de novo.");return}var r=new FileReader();r.onload=function(){stateV.cv={nome:f.name,dados:r.result};drawCv()};r.readAsDataURL(f)};
+$("q").oninput=function(){Q=norm(this.value).split(/\s+/).filter(Boolean);renderAll()};
 $("add").onclick=function(){openC("c"+Date.now().toString(36))};
 var VER=0,EDIT=!/[?&]ver/.test(location.search);
 (function(){var base={};try{var o=JSON.parse(document.getElementById("dados").textContent);VER=o.versao||0;base=o.candidatos||{}}catch(e){}
